@@ -1,0 +1,217 @@
+% This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/3.0/ or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+\chapter{Clustering}
+
+\section{Unsupervised learning}
+
+Our first unsupervised learning algorithm (datasets without labels $y$), clustering! Useful for things like market segmentation, social network analysis, organising computer clusters (how meta) and astronomical data analysis.
+
+K-means is the most widely used clustering algorithm. How it works is best described in pictures (and I've got them in the scratchpad) but here's a quick rundown:
+
+\begin{enumerate}
+\item Initialise the desired number of \emph{cluster centroids}.
+\item Cluster assignment: Assign each datapoint to whichever centroid it is closest to.
+\item Move centroids: Move the (previously randomly assigned) centroids to the average of the assigned clusters.
+\end{enumerate}
+
+Then, just iterate step 2 and 3 until convergence.
+
+Some notation:
+\begin{enumerate}
+\item Inputs:
+	\begin{enumerate}
+	\item $K$ for the number of clusters
+	\item Training set $\{x^{(1)}, x^{(2)}, x^{(n)}\}$
+	\end{enumerate}
+\item $x^{(i)} \in \mathbb{R}^n$ (in other words, $x$ is an $n$-dimensional vector, do not add the $x^{(0)} = 1$ we previously did by convention).
+\item Clusters are referred to as $\mu$, so for $K$ clusters we have $\mu_1, \mu_2 \dots, \mu_K$ clusters.
+\item $\mu_{c^{(i)}}$ is the cluster centroid to which example $x^{(i)}$ has been assigned.
+\end{enumerate}
+
+Here's the algorithm in pseudo-code:
+
+\begin{algorithmic}
+\REPEAT
+	\FOR{$i = 1 \to m$}
+		\STATE $c^{(i)} \gets \textrm{Index (1 to K) of cluster centroid closest to } x^{(i)}$
+	\ENDFOR
+	\FOR{$k = 1 \to K$}
+		\STATE $\mu_k \gets \textrm{Average (mean) of points assigned to cluster }k$
+	\ENDFOR
+\UNTIL{\textrm{convergence}}
+\end{algorithmic}
+
+Another way of writing the process of finding the closest cluster centroid:
+
+\[
+\min_k ||x^{(i)} - \mu_k||^2
+\]
+where $k$ is the index into all the cluster centroids (so we're trying to find the $k$ where the result of $||x^{(i)} - \mu_k||^2$ is smallest). The squaring of the distance is by convention (I'd imagine so that a large negative distance doesn't throw the result).
+
+If a cluster ends up with no data assigned to it, it is common to eliminate the cluster. If you don't want to do that, you can randomly re-assign it.
+
+Also note that $\mu$ ends up an $n$-dimensional vector. (All this and more illustrated in the scratchpad).
+
+\subsection{K-means with non-separated clusters}
+
+In short: it works. It will still find $K$ clusters in your data.
+
+\section{The optimisation objective (cost function) of K-means}
+
+This is essentially just a formalisation of the points previously mentioned but the function $J$ for K-means clustering looks like this:
+
+\begin{equation}
+J(c^{(1)}, \dots, c^{(m)}, \mu_1, \dots, \mu_k) =
+\frac{1}{m} \sum^m_{i = 1}|| x^{(i)} - \mu_{c^{(i)}} ||^2
+\end{equation}
+
+You can break down the two steps in the K-means algorithm and show they do exactly the above:
+
+\begin{description}
+\item[Cluster assignment] Minimises $J(\dots)$ w.r.t. $c^{(1)}, c^{(2)}, \dots, c^{(m)}$ while holding $\mu_1, \mu_2, \dots, \mu_k$ fixed.
+\item[Move centroids] Minimises $J(\dots)$ w.r.t. $\mu_1, \mu_2, \dots, \mu_k$.
+\end{description}
+
+K-means working correctly precludes the cost function increasing over time, so if that happens there's a bug in your implementation.
+
+\section{The random initialisation of cluster centroids}
+
+While there's several ways to do it, there's one that works best:
+
+Make sure $K < m$ (having more clusters than training examples would be weird, man!). Randomly pick $K$ training examples and then set your cluster centroids $\mu_1, \mu_2, \dots, \mu_k$ to these training examples.
+
+To avoid \emph{local optima}, you can initialise K-means a larger number of times (usually anywhere between 50 - 1000). After each run converges, compute the cost function $J$. Once you complete all the runs, pick the outcome with the lowest cost.
+
+If you run K-means with a relatively small number of clusters (2 - 10) this should give you a good chance of avoiding local optima. If you are looking for a large number of clusters (in the area of 100 or so) it's not likely to change the outcome much - the first run of random initialisation is likely to already provide you a serviceable answer.
+
+\section{Choosing the number of clusters}
+
+Turns out there's not a great way to do it automatically, it is usually done by hand. The reason for this in part is that there's usually quite a bit of ambiguity in what the correct number of clusters would even be.
+
+The \emph{elbow method} is one way of automatically picking the number of clusters - perform K-means with different numbers of clusters, plot the cost function and pick the value where the graph elbows (picture in scratchpad). This doesn't always work because the graph might well be quite smooth. The verdict was not to expect great results from this.
+
+Another method is to base the number of clusters on what you'll be using the data for downstream (market segmentation, organise computer servers in clusters, etc). Just pick a number of clusters that best fits the downstream purpose.
+
+\chapter{Dimensionality reduction}
+
+\section{Dimensionality reduction for data compression}
+
+One reason to reduce dimensionality would be if you end up with redundant features (length in inches as well as real measurements). They might also be not related at first glance but correlate very well. You can then reduce 2D data to 1D by projecting both features on a new feature (picture in scratchpad).
+
+\section{Dimensionality reduction for data visualisation}
+
+There's not a lot to this - in the case of dimensionality reduction for visualisation you try to reduce a dataset to 2 or 3 dimensions so you can visualise it. The end.
+
+\section{Principal Component Analysis}
+
+\subsection{Problem formulation}
+
+In more or less plain english: Find a surface to project the dataset onto such that the projection errors (the distance between the surface and the datapoint) are minimised.
+
+Slightly more formally: To reduce a dataset from $n$ dimensions to $k$ dimensions we find $k$ vectors ($u^{(1)}, u^{(2)}, \dots, u^{(k)}$) onto which to project the data so as to minimise projection error.
+
+\subsection{Note regarding PCA and linear regression}
+
+While superficially similar, the two algorithms seek to minimise different things - linear regression measures only the prediction error (distance from a point on the line to the label on the $y$ axis) whereas 2-to-1 dimensional PCA minimises the projection error, which is the orthogonal (90 degree) distance between the line and the point. A clarifying diagram in the scratchpad.
+
+\subsection{Algorithm definition}
+
+A prerequisite to the PCA algorithm is mean normalisation and, often, feature scaling (the first means the mean of a feature is set to 0, the second that the order of magnitude of its outliers are of a similar scale).
+
+To reduce data from $n$ dimensions to $k$ dimensions:
+
+\begin{description}
+\item[Compute \emph{Covariance Matrix}] This matrix is denoted with the symbol $\Sigma$ (capital sigma). Because nothing can ever be easy it looks very similar to the summation symbol but means something different.
+\[
+\Sigma = \frac{1}{m}\sum^n_{i = 1}(x^{(i)})(x^{(i)})^T
+\]
+Note: For a dataset X this vectorises to Sigma = (1/m) * X' * X;
+\item[Compute \emph{eigenvectors} of $\Sigma$] Done in Octave with the incantation ``[U, S, V] = svd(Sigma);''. The function name svd is short for \emph{Singular Value Decomposition}.
+
+\item[Extract vectors for projection] The vector $U$ from the previous step has the vectors we're after. Each column in $U$ is one of the vectors. Given we're reducing to $k$ dimensions, you grab the first $k$ columns of $U$ to use as surfaces for projection. We'll name the resultant matrix $U_{\textrm{reduce}}$ (now a $n \cdot k$ vector).
+
+\item[Calculate new dataset] Now we simply multiply to find our new dataset $z$:
+\[
+z = (U_{\textrm{reduce}})^Tx
+\]
+
+\end{description}
+
+\subsection{Choosing $k$ - the number of principal components}
+
+A few pieces of information are useful to this discussion:
+
+\begin{description}
+\item[Average squared projection error] The average distance between $x$ and its projection.
+\[
+\frac{1}{m}\sum^m_{i = 1}||x^{(i)} - x^{(i)}_{\textrm{approx}}||^2
+\]
+\item[Total variation in dataset] The variability of the data.
+\[
+\frac{1}{m}\sum^m_{i = 1}||x^{(i)}||^2
+\]
+\end{description}
+
+We want to choose the smallest value of $k$ so that
+
+\begin{equation}
+\frac{
+\frac{1}{m}\sum^m_{i = 1}||x^{(i)} - x^{(i)}_{\textrm{approx}}||^2
+}{
+\frac{1}{m}\sum^m_{i = 1}||x^{(i)}||^2
+}
+\leq
+0.01
+\end{equation}
+
+This would mean that ``99\% of the variance of the dataset is retained''. What this phrase means precisely is out of scope, but it means that the above calculation holds.
+
+In order to use this calculation to choose $k$, one way to go is to simply apply PCA with $k = 1$, calculate the variance, see if it hits your threshold and if not, try again with $k = 2$, et cetera. This has obvious downsides (being rather inefficient for one). Turns out Octave has our back on this.
+
+When you run ``[U, S, V] = svd(Sigma);'', the matrix $S$ returns a diagonal matrix that makes it much easier to calculate the above value. Basically it turns out that
+
+\begin{equation}
+\frac{
+\frac{1}{m}\sum^m_{i = 1}||x^{(i)} - x^{(i)}_{\textrm{approx}}||^2
+}{
+\frac{1}{m}\sum^m_{i = 1}||x^{(i)}||^2
+}
+=
+1 - \frac{\sum^k_{i = 1}S_{ii}}{\sum^n_{i = 1}S_{ii}}
+\end{equation}
+
+What that essentially does is compute one minus the ratio between the first $k$ entries of the diagonal matrix and all of the entries.
+
+And as such, all you need to do to find the value for $k$ that meets your need is to iteratively increase $k$ until you find that the outcome of the below is acceptable (0.99 for 99\% variance retained):
+\[
+\frac{\sum^k_{i = 1}S_{ii}}{\sum^n_{i = 1}S_{ii}} \geq 0.99
+\]
+
+\subsection{Reconstruction from compressed representation}
+
+This is numerically straightforward:
+
+\[
+x_{\textrm{approx}} = U_{\textrm{reduce}} \cdot z
+\]
+
+Where $x_{\textrm{approx}} \approx x$.
+
+\section{Implementation advice for PCA}
+
+\subsection{Using PCA to speed up supervised learning}
+It can be useful to reduce the number of features for a supervised learning problem (think a 100x100 pixel image which, even in just grayscale, would mean 10,000 features).
+
+This works pretty much like you would think it works - separate out the training data from the label (discard $y$ for a moment), run PCA to whatever degree of accuracy you want, use the resultant dataset $z$ with your existing labels $y$. Serves two.
+
+One thing to note here is that you should only use your \emph{training set} to find $U_{\textrm{reduce}}$ for PCA. Think of applying PCA as a parameter for your learning algorithm - you can apply the PCA transformation you found to your cross-validation and  test sets as needed to get results, but using those sets to find your PCA details would contaminate the results in the same way that using them to train your algorithm would.
+
+\subsection{Do not use PCA to prevent over fitting}
+
+This occasionally happens in the wild, or so I'm told. While it might work it remains a bad idea as PCA removes (some) amount of information from your dataset without regard to $y$. Regularisation uses $y$ and so should be used instead.
+
+(Think about it - the little bit of information lost through PCA might well be very critical in predicting $y$. If you use regularisation, the penalty for making the relevant value in $\theta$ higher is easily offset by it's predictive capability. PCA has no idea you'd even want to use the data to predict $y$ so you lose that information)
+
+\subsection{Consider not using PCA}
+
+It makes sense to use PCA to speed up your learning algorithm, or to reduce the amount of storage needed. However, if it's not needed then it introduces a needless step that might reduce the accuracy of your algorithm. So, start without PCA and only if you actually have a requirement to either speed up the algorithm or reduce its footprint.

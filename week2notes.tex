@@ -1,0 +1,316 @@
+%This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/3.0/ or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+\chapter{Logistic Regression}
+Logistic regression is a popular and widely used algorithm. While named Logistic Regression for historical reasons, it is a \emph{classification algorithm}.
+
+\section{Classification}
+Classification problems are problems where the $y$ you are looking for falls in discrete values. Examples include spam detection (spam / not spam), fraudulent charge detection, working out wether tumours are malignant or benign. This can be expressed as
+\[y \in {0, 1}\]
+where $0$ is considered the "negative class" (e.g.: not spam) and $1$ is considered the "positive class" (e.g. spam). The assignment to either $0$ or $1$ is arbitrary but in the general case it follows that the negative class denotes the absence of something, whereas the positive class denotes the presence of something.
+The case where only two possible states are valid is referred to as the \emph{binary classification problem}.
+
+\[ y \in {0, 1, 2, \dotsc, n} \]
+
+The above defines the \emph{multi-class classification problem}, more on that later.
+
+\subsection{Linear regression and classification problems}
+
+You can use linear regression to fit a hypothesis to a dataset of a classification problem. You would \emph{threshold the classifier output} to achieve a map to the binary values for $y$.
+
+To threshold $h_\theta(x)$ at $0.5$ would mean if  $h_\theta(x) \ge 0.5$ predict $y=1$, if $h_\theta(x) \leq 0.5$ predict $y=0$.
+
+This approach has issues. One way this can break is if your $y$ changes value after a particular point on the $x$ axis and your dataset has examples with large $x$ values. The fitted line will be much too shallow and will end up misclassifying data because of it. Due to this tendency linear regression is generally not a good fit for a classification problem.
+
+\subsection{Hypothesis representation}
+
+Given the constraints on the possible values of $y$, a new way to represent the hypothesis is necessary so that $0 \leq h_\theta(x) \leq 1$.
+
+To achieve this, we'll take linear regression's hypothesis function $h_\theta(x) = \Theta^Tx$ and modify it to use a \emph{Sigmoid function} (or \emph{Logistic function}):
+\begin{equation}
+\label{Logistic Regression Hypothesis form}
+h_\theta(x) = g(\Theta^Tx)
+\end{equation}
+\begin{equation}
+\label{Sigmoid function}
+g(z) = \frac{1}{1 + e^{-z}}
+\end{equation}
+
+This can be simplified to:
+\begin{equation}
+\label{Compact logistic regression hypothesis}
+h_\theta(x) = \frac{1}{1 + e^{-\Theta^Tx}}
+\end{equation}
+
+The Sigmoid function asymptotes to 0 and to 1. This means it trends but never gets to 0 as $x \rightarrow - \infty$. and trends but never gets to 1 as $x \rightarrow \infty$. Further, it is precisely 0.5 at $x = 0$.
+
+The output of $h_\theta(x)$ should be interpreted as the probability that $y = 1$. That is, if $h_\theta(x) = 0.7$ then there's a 70\% chance that $y = 1$. Formally:
+\[
+h_\theta(x) = P(y=1 | x;\theta)
+\]
+The above can be read aloud as ``the probability that $y = 1$ given $x$, parameterised by $\theta$''. Given that, it is obvious that we can determine the chance that $y = 0$ as well:
+\[
+P(y=0 | x;\theta) + P(y=1 | x;\theta) = 1
+\quad\therefore\quad
+P(y=0 | x;\theta) = 1 - P(y=1 | x;\theta)
+\]
+
+\subsubsection{Intuition for this hypothesis form}
+It is worth noting that $h_\theta(x) = 0.5$ when $\Theta^Tx = 0$ (this is not news, just making explicit what was implicit above). 
+The plot of values where $h_\theta(x) = 0.5$ (or whatever threshold was picked) is called the \emph{decision boundary}. This decision boundary is a property of the hypothesis function, not of the dataset (though of course the dataset influences the hypothesis function).
+
+You can create non-linear decision boundaries by, as discussed earlier, adding \emph{higher order polynomials} to your hypothesis function. The following example was given:
+\[
+h_\theta(x) = g(\theta_0 + \theta_1x_1 + \theta_2+x_2 + \theta_3x_1^2 + \theta_4x_2^2)
+\]
+If you suppose that 
+\[
+\Theta =
+\left[
+\begin{array}{c}
+	-1\\
+	0\\
+	0\\
+	1\\
+	1
+\end{array}
+\right]
+\]
+you end up with an awesome circle centred on the origin with a radius of 1. Everything outside the circle is predicting $y = 1$, everything inside is predicting $y = 0$.
+
+Using higher order polynomials in the hypothesis function allows for some very complex decision boundaries. Some examples were doodled and most resembled amorphous blobs.
+
+\subsubsection{Cost function and optimising $\theta$}
+
+As a quick refresher, the linear regression cost function looks like this:
+\begin{equation}
+J(\theta) = \frac{1}{m}\sum^m_{i = 1}\frac{1}{2}
+(h_\theta(x^{(i)}) - y^{(i)})^2
+\end{equation}
+which can be rewritten for clarity like so:
+\[
+J(\theta) = \frac{1}{m}\sum^m_{i = 1}cost(h_\theta(x) - y)
+\]
+\[
+cost(h_\theta(x), y) = \frac{1}{2}(h_\theta(x) - y)^2
+\]
+(the superscript $(i)$ is dropped for readability)
+
+If you were to use this cost function for logistic regression you'd end up with a \emph{non-convex} function (informally: a function that wanders all over the place when graphed, or a function with many local optima). It would be much more desirable to have a cost function that is convex (bow shaped with only one optimum, which is as such the global optimum), as gradient descent would be guaranteed to find the best value.
+
+The function that fits the bill is the following:
+\begin{equation}
+cost(h_\theta(x), y) = \begin{cases}
+    -log(h_\theta(x) & \text{if $y = 1$}\\
+    -log(-1 h_\theta(x) & \text{if $y = 0$}\\
+	\end{cases}
+\end{equation}
+
+For the case of $y = 1$, this would graph as a line that asymptotes to $\infty$ when $h_\theta(x) = 0$ (which correctly assigns a very large cost as the heuristic literally couldn't be more wrong, remember y is between 0.0 and 1.0) and neatly lands on $cost = 0$ when $h_\theta(x) = 1$.
+
+The case for $y = 0$ is, predictably, the exact opposite. Because it plots $-log(1 - h_\theta(x)$ (key point being the $1 - value$) it means $cost = 0$ when $h_\theta(x) = 0$ and $\infty$ when $h_\theta(x) = 1$.
+
+For both cases, the result in plain english is that the further the hypothesis gets away from the known value of $y$, the closer the cost gets to $\infty$.
+
+There is Serious Mathematics that prove that using this cost function will not encounter any local optima and as such, gradient descent will solve it.
+
+\subsubsection{A simplified cost function}
+
+\[
+cost(h_\theta(x), y) = \begin{cases}
+    -log(h_\theta(x) & \text{if $y = 1$}\\
+    -log(-1 h_\theta(x) & \text{if $y = 0$}\\
+	\end{cases}
+\]
+
+Can be rewritten as
+
+\begin{equation}
+cost(h_\theta(x), y) = -y\cdot log(h_\theta(x)) - 
+	(1 - y)log(1-h_\theta(x))
+\end{equation}
+
+This is because $y$ can only ever be 0 or 1. The $-y\cdots$ and $(1-y)\cdots$ bits flip the function to return either one part or the other (do it in your head with $y=0$ or $y=1$.
+
+With this in mind, we can now rewrite the cost function like so:
+\begin{equation}
+	J(\theta) = -\frac{1}{m}[\sum^m_{i = 1}
+	y^{(i)}log(h_\theta(x^{(i)}) + (1-y^{(i)})log(1-h_\theta(x^{(i)}))]
+\end{equation}
+This looks a hell of a lot scarier than it is. Fundamentally all that changed is the negative sign got pulled to the start of the equation, other than that, it's just numbers being filled in.
+
+\subsubsection{Gradient Descent using logistic regression}
+
+Funnily enough, the gradient descent algorithm looks exactly the same as for linear regression:
+\begin{equation}
+loop \{\\
+\theta_j \mathrel{\mathop:}=
+\theta_j - \alpha\frac{1}{m}
+\sum_{i=1}^{m}
+(h_\theta(x^{(i)}) - y^{(i)})x_j^{(i)} \\
+\}
+\end{equation}
+
+Where you simultaneously update this for all values of $j$.
+
+The difference is in the function $h_\theta(x^{(i)})$ which in this case isn't $\theta^Tx$ but instead $\frac{1}{1 + e^{-\theta^Tx}}$
+
+When implementing this, debugging works much the same way as it did in linear regression - plot $J(\theta)$ over the number of iterations and make sure it goes down.
+
+A vectorised implementation of this looks exactly like this:
+\[
+\theta \mathrel{\mathop:}=
+\theta - \alpha\frac{1}{m}
+\sum_{i=1}^{m}
+[(h_\theta(x^{(i)}) - y^{(i)}) \cdot x^{(i)}]
+\]
+
+\emph{Feature scaling} is still as relevant for this as it was for linear regression - keeping features similar in scale will help gradient descent on logistic regression converge faster.
+
+\subsubsection{Advanced optimisation}
+There are actually a handful of algorithms that can fill the shoes of gradient descent (that is, converge on a solution if you provide a way to compute $J(\theta)$ and the values for $\frac{\partial}{\partial\theta_j}J(\theta)$ for all $j$.
+
+The provided list of algorithms is:
+
+\begin{itemize}
+\item Gradient descent
+\item Conjugate descent
+\item BFGS
+\item L-BFGS
+\end{itemize}
+
+In the latter three there's no need to manually pick $\alpha$ and they generally outperform gradient descent. They are significantly more complex though. The advice is similar to implementations of square root and suchlike - find a library to do it for you! Octave provides decent implementations.
+
+Look at the scratchpad for this week's notes for some Octave specific stuff about implementing this.
+
+\subsubsection{Multi-class classification}
+
+If $y$ can take on ``a small number of discrete values'' (say, tagging your email with tags like 'friends', 'family', 'hobby', 'work', et cetera) you have a multi-class classification problem.
+
+Using \emph{one-versus-all} (or one-versus-rest) classification we can get multi-class classification problems solved.
+
+You essentially just create a number of different training sets where a single example is either in the class you're dealing with or they're not (assigning positive and negative classes). You will end up fitting different hypothesis to these datasets. Refer to the hypothesis functions as $h_\theta^{(1)}(x)$, $h_\theta^{(2)}(x)$, $h_\theta^{(n)}(x)$.
+
+To make a prediction, run all hypotheses and return the highest value (so if that's $h^{(3)}$ then return that there's that chance that $y$ is 3).
+
+Note that for a dataset with $k$ different classes for $y$, you'll end up training $k$ different \emph{logistic regression classifiers}.
+
+Have a look at the scratchpad for some more info.
+
+\chapter{Regularisation}
+\subsection{The problem of overfitting}
+Overfitting is when the heuristic function adheres very closely to the sample data but doesn't necessarily provide meaningful predictions in between the provided dataset. There's a good visualisation in the scratchpad for both over- and under fitting. Heuristic functions that are over fitted are said to have \emph{high variance}, whereas under fitted functions are said to have \emph{high bias} (explained as a strong tendency to explain data in one model (say, linearly) while evidence to the contrary exists in the dataset).
+
+There are two ways to address over fitting.
+\begin{description}
+\item{Reduce the number of features} \hfill\\ You can either manually select which features to keep, or (as will be taught later in the course) use a \emph{model selection algorithm}, which will automatically determine which features to keep and which to prune.
+\item{Regularise} \hfill\\ This will keep all features, but reduce the magnitude or values of parameters $\theta_j$. This works well when you have a lot of features, all of which contribute a little towards finding $y$.
+\end{description}
+
+\subsection{The cost function}
+
+In general, having low values for the parameters of $\theta$ leads to a simpler hypothesis which is less prone to over fitting. It therefor is helpful to penalise large values for any one parameter in the cost function.
+
+\begin{equation}
+J(\theta) = \frac{1}{2m}[\sum^m_{i = 1}
+(h_\theta(x^{(i)}) - y^{(i)})^2 +
+\lambda \sum^n_{j = 1}\theta^2_j]
+\end{equation}
+
+Note that the term penalising large values (the \emph{regularisation term}) of $\theta$, $\lambda \sum^n_{j = 1}\theta^2_j$, starts with $ j = 1 $, (remember, $\theta_0$ = 1 to give that constant value). This is by convention, it generally makes little difference to the algorithm proper.
+
+$\lambda$ is called the \emph{regularisation parameter}. It controls the tradeoff between the first term of the cost function, which seeks to find a good fit to the sample data, and the second term, which seeks to keep all parameters of $\theta$ low. Setting $\lambda$ to too large a value will result in under fitting. Later in the course, we'll discuss ways to automatically set $\lambda$.
+
+\subsection{Regularised linear regression}
+
+\subsubsection{Gradient descent}
+
+Our original cost function looks like this (with $\theta_0$ singled out as, by convention, we don't apply regularisation to $\theta_0$:
+
+Note: These two assignments are iterated for some time.
+\[
+\theta_0 \mathrel{\mathop:}=
+\theta_0 - \alpha \frac{1}{m}
+\sum_{i=1}^{m}
+(h_\theta(x^{(i)}) - y^{(i)})x_0^{(i)}
+\]
+\[
+\theta_j \mathrel{\mathop:}=
+\theta_j - \alpha \frac{1}{m}
+\sum_{i=1}^{m}
+(h_\theta(x^{(i)}) - y^{(i)})x_j^{(i)}
+\]
+
+All we need to do to add regularisation to assignments of $\theta_j$ where $j \neq 0$ is this:
+
+\[
+\theta_j \mathrel{\mathop:}=
+\theta_j - \alpha [\frac{1}{m}
+\sum_{i=1}^{m}
+(h_\theta(x^{(i)}) - y^{(i)})x_j^{(i)} - \frac{\lambda}{m}\theta_j]
+\]
+Which can be rewritten as
+\[
+\theta_j \mathrel{\mathop:}=
+\theta_j(1 - \alpha\frac{\lambda}{m})
+ - \alpha \frac{1}{m}
+\sum_{i=1}^{m}
+(h_\theta(x^{(i)}) - y^{(i)})x_j^{(i)}
+\]
+
+You can follow along the logic here by examining the term $1 - \alpha\frac{\lambda}{m}$ - for nonzero values of $m$, $\alpha$ and $\lambda$, this will generally result in a number $< 1$, so you can see this would push $\theta$ downwards in a normal iteration.
+
+\subsubsection{Normal equation}
+
+This is what the normal equation looks like (remember, it allows you to solve for lowest value of  $J(\theta)$ in one calculation:
+
+\[
+\Theta = (X^TX)^{-1}X^Ty
+\]
+
+To use regularisation, you add a matrix in the $(X^TX)$ term that is an identity matrix with [1,1] set to 0 multiplied by $\lambda$:
+\[
+\Theta = (X^TX + \lambda
+\begin{pmatrix}
+0 & 0 & \cdots & 0 \\
+0 & 1 & \cdots & 0 \\ 
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \cdots & 1
+\end{pmatrix}
+ )^{-1}X^Ty
+\]
+The not-quite-identity-matrix is of size $[n + 1, n + 1]$ as you'd expect.
+
+Optionally, consider the \emph{non-invertability} scenario which is possible when $m \leq n$. Solving this with Octave's \emph{pinv} without regularisation gives you a numerically correct answer but might not necessarily result in a sensible hypothesis. Regularisation however ensures (this can be proven but it is too involved to get in to) that the resultant matrix of $(X^TX + \lambda
+\begin{pmatrix}
+0 & 0 & \cdots & 0 \\
+0 & 1 & \cdots & 0 \\ 
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \cdots & 1
+\end{pmatrix}
+)^{-1}$ will never be degenerate provided $\lambda > 0$.
+
+\subsection{Regularised logistic regression}
+\subsubsection{Using gradient descent}
+Remember the cost function for this looks, once unfolded and simplified, like this:
+\[
+	J(\theta) = -[\frac{1}{m}\sum^m_{i = 1}
+	y^{(i)}log(h_\theta(x^{(i)}) + (1-y^{(i)}))log(1-h_\theta(x^{(i)}))]
+\]
+
+All that needs to happen to regularise it is to add a term at the end:
+
+\[
+J(\theta) = -[\frac{1}{m}\sum^m_{i = 1}
+y^{(i)}log(h_\theta(x^{(i)}) + (1-y^{(i)}))log(1-h_\theta(x^{(i)}))] + \frac{\lambda}{2m}\sum^n_{j = 1}\theta^2_j
+\]
+
+To implement this using gradient descent looks superficially the same as the linear regression version. Assuming we treat $\theta_0$ separately, it just comes down to iterating over this:
+\[
+\theta_j \mathrel{\mathop:}=
+\theta_j - \alpha [\frac{1}{m}
+\sum_{i=1}^{m}
+(h_\theta(x^{(i)}) - y^{(i)})x_j^{(i)} - \frac{\lambda}{m}\theta_j]
+\]
+
+\subsubsection{Using more advanced optimisation techniques}
+There's a most enlightening slide in the scratchpad. Remember that to implement the advanced optimisations we need to provide a cost function that returns $J(_theta)$, to which we'll now have to add the regularisation term, as well as all partial derivatives ($\frac{\partial}{\partial\theta_n}J(\theta)$ for all values of $n$). Lastly, remember that we treat $\theta_0$ differently (we don't regularise it) and that Octave is 1-indexed as opposed to $\theta$, which we've 0-indexed.

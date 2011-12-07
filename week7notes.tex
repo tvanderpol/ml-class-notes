@@ -1,0 +1,217 @@
+% This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/3.0/ or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+\chapter{Support Vector Machine}
+
+\section{Alternative view of logistic regression}
+
+Remember, for logistic regression
+
+\begin{equation}
+h_\theta(x) = \frac{1}{1 + e ^{-\theta^Tx}}
+\end{equation}
+
+So if $y = 1$ we want $h_\theta(x)$ to be close to 1, which in turn means $\theta^Tx$ needs to be far greater than 0 (due to the way the hypothesis asymptotes to 1). There's some nice pictures of this in the scratchpad, but fundamentally we want to replace the cost function of logistic regression with one that's easier to compute and manipulate (no details on that yet).
+
+The proposed new cost functions are called $\textrm{cost}_1(z)$ and $\textrm{cost}_0(z)$ where the subscript refers to whether $y = 1$ or $y = 0$.
+
+The cost function for logistic regression, slightly massaged into shape, is:
+
+\begin{equation}
+\min_\theta \frac{1}{m}
+\left[
+\sum_{i = 1}^{m}y^{(i)} \left(-\log h_\theta(x^{(i)}) \right) +
+(1 - y^{(i)}) \left(-\log(1-h_\theta(x^{(i)})) \right)
+\right]
++ \frac{\lambda}{2m}\sum_{j = 1}^{n}\theta_j^2
+\end{equation}
+
+The cost function for Support Vector Machines is almost the same, with some slight cosmetic differences. We got rid of $\frac{1}{m}$ as the outcome (minimising $\theta$) doesn't change. Secondly, the way the tradeoff between the cost and the regularisation parameter is controlled is flipped - instead of having a multiplier $\lambda$ in front of the regularisation parameter, we have a multiplier $C$ in front of the cost function. So instead of $J_\theta$ taking the form $A + \lambda B$ it now takes the form $CA + B$. Whereas before you'd increase $\lambda$ to give the regularisation parameter more weight, you now decrease $A$.
+
+This process then gives us:
+\begin{equation}
+\min_\theta C
+\sum_{i = 1}^{m}
+\left[
+y^{(i)} \textrm{cost}_1(\theta^Tx^{(i)}) +
+(1-y^{(i)})\textrm{cost}_0(\theta^Tx^{(i)})
+\right]
++ \frac{1}{2}\sum_{j = 1}^{n}\theta_j^2
+\end{equation}
+
+It's worth noting that both functions will give the same optimisation result for $\theta$ if $C = \frac{1}{\lambda}$.
+
+Lastly, a \emph{SVM} (Support Vector Machine) does not output a probability from $h_\theta(x)$ but instead either $1$ or $0$.
+
+\section{Large Margin Intuition}
+
+As can be seen in the scratchpad, if you plot the cost function for an SVM, you see that in order for it to predict $y = 1$, you want $\theta^Tx \geq 1$, not just $\geq 0$. If you want it to predict $y = 0$, you want $\theta^Tx \leq -1$, not just $\leq 0$. This essentially means that the algorithm wants to be more sure before stating its prediction.
+
+What this ends up doing (the second video goes through this step-by-step) is creating a \emph{decision boundary} with a maximised \emph{margin} (the concept of the margin was discussed in the AI class but basically it's the distance from the decision boundary to the nearest datapoint).
+
+The SVM is therefore said to be a \emph{large margin classifier} (as it seeks to maximise the margin).
+
+\subsection{Large margin classifier in presence of outliers}
+
+With a very large value for $C$, SVM is very susceptible to outliers (see the scratchpad) but with smaller values for $C$ the algorithm is more robust and resistant to outliers.
+
+\section{Mathematics behind large margin classification}
+
+There are some pictures of this stuff in the scratchpad, but briefly, \emph{vector inner product} is an important concept in how this all fits together.
+
+First, realise that if you have a 2-dimensional vector, you can plot that as a graph (using 0,0 as a starting point). This means Pythagoras can be used to find the \emph{norm} of the vector.
+
+Given the following two vectors:
+\begin{equation}
+u = \left[ \begin{array}{c} u_1 \\ u_2 \end{array} \right]
+\quad
+v = \left[ \begin{array}{c} v_1 \\ v_2 \end{array} \right]
+\end{equation}
+The norm of vector $u$ is written as $||u||$. Given Pythagoras, this means $||u|| = \sqrt{u_1^2 + u_2^2} \in \mathbb{R}$.
+
+You can then project the vector $v$ onto the vector $u$. If we take $p$ to be the length of the projection of $v$ onto $u$.
+
+It can then be shown that $u^Tv = p \cdot ||u|| = u_1v_1 + u_2v_2$. Note that $p$ can  be negative (this happens if the angle between $u$ and $v$ exceeds 90 degrees - the projected vector would be pointing the opposite way to the vector you're projecting on). The slide with all the pretty pictures is in the scratchpad.
+
+Armed with this knowledge, we can now figure out how the SVM decision boundary works.
+
+You can rewrite the minimisation objective of the SVM (for simplification, we've set $\theta_0 = 0$):
+
+\begin{align*} 
+\min_\theta \frac{1}{2}\sum^n_{j=1}\theta^2_j
+&= \frac{1}{2}(\theta_1^2 + \theta_2^2) \\
+&= \frac{1}{2}(\sqrt{\theta_1^2 + \theta_2^2})^2 \\
+&= \frac{1}{2}||\theta||^2
+\end{align*}
+
+From this and the previous details it follows that
+
+\begin{align*} 
+\theta^Tx^{(i)} &= p^{(i)} \cdot ||\theta|| \\
+&= \theta_1x_1^{(i)} + \theta_2x_2^{(i)}
+\end{align*}
+
+(remember $\theta^Tx$ is how we calculate our prediction $y$, where we return 1 if $y \geq 1$ and 0 if $y \leq -1$)
+
+It can be shown that the vector $\theta$ stands out 90 degrees from the decision boundary (helpful graph in the scratchpad). As a direct result of this, the resultant values for $p$ (the projections of the example data on vector $\theta$) is inevitably going to be small for a decision boundary that sits close to examples (= has a small margin). As you can see above the optimisation objective wants $p^{(i)}||\theta||$ to be large. 
+
+As such, minimising the cost function will find a decision boundary with a large margin (It wants the projections of the training data on vector $\theta$ to be large).
+
+Lastly, while it wasn't covered, I was assured in soothing tones the proof holds up for $\theta_0 \neq 0$ as well with slight variations.
+
+\section{Kernels}
+
+On a conceptual level, kernels are points in your data space (with only a feature and a $y$ this could be graphed in 2d, with 2 features in 3d, but after that it gets kind of hard visually) to which you measure proximity.
+
+First off, some slight change in notation. To abstract out features from their meaning (as in a feature could be $x_2^3x_3^4$ or $x_1$) we can start referring to them as $f_1, f_2, \dots f_n$ like so: $\theta_0 +\theta_1f_1 + \theta_2f_2 \dots \theta_nf_n$.
+
+We can now base features on their proximity to \emph{landmarks} (notation: $l^{(1)}), l^{(2)}), \dots, l^{(n)})$). We can now define similarity to a landmark like so:
+
+\[
+f_1 = \textrm{similarity}(x, l^{(1)}) = \exp{(-\frac{||x - l^{(1)}||^2}{2\sigma^2})}
+\]
+
+The similarity function here is called a \emph{kernel function} (the specific one up there is a \emph{Gaussian Kernel function}). You can also represent a a kernel function more briefly:
+\[
+\mathrm{similarity}(x, l^{(i)}) = k(x, l^{(i)})
+\]
+
+Note: As I am somewhat notationally challenged, $exp(x) = e^x$. I guess writing it as $exp()$ gives you more space to typeset convoluted equations.
+
+You can also write the kernel function like this:
+\[
+\exp{(-\frac{||x - l^{(1)}||^2}{2\sigma^2})} =
+\exp{(-\frac{\sum^n_{j = 1}(x_j - l_j^{(1)})^2}{2\sigma^2})}
+\]
+
+This form is probably easier to visualise as an implementation (note it ignores $x_0$).
+
+It makes sense then that if $x \approx l^{(1)}$ then the kernel function approaches $e^{-\frac{0^2}{2\sigma^2}} = e^{-0} = 1$. If on the other hand $x$ is far away from $l^{(1)}$ then the function approaches $e^{-\frac{\infty^2}{2\sigma^2}} = e^{-\infty} = 0$.
+
+So in normal english, a feature using a kernel function will be close to 1 if the example is very similar to the landmark, and close to 0 if it's very different.
+
+$\sigma^2$ a parameter to the gaussian kernel function (didn't catch if it had a proper name) that dictates how fussy the function should be. For a smaller $\sigma^2$, the result of $r(x,l)$ will be 0 faster. So increase $\sigma^2$ to make the function more permissive, decrease $\sigma^2$ to make it more restrictive. There is a nice visualisation of the effects of changing $\sigma^2$ in the scratchpad.
+
+Using kernel functions in a hypothesis in practise means that if $h(\theta) \geq 0$ you predict $1$, otherwise you predict $0$. This means some pretty cool things - you can set what amounts to a bias (needs to be pretty close to one of the landmarks to be considered) by making $\theta_0$ negative, this gives the other features something of a hurdle to overcome (if they can't at least negate the effect of $\theta_0$ you'll still predict negative).
+
+You can also make the $\theta$ value for certain landmarks negative so that if an example is similar to those landmarks, they actually get marked down and you're more likely to predict $0$. It's easy to see how you can create some pretty complicated decision boundaries relatively easily.
+
+\subsection{Finding kernels}
+
+A simple solution to this one - pick a landmark for each training example! This obviously means $m$ landmarks for a dataset of size $m$.
+
+You can now create a feature vector $f$ which contains all your landmarks. Then, you can represent each $x^{(i)}$ (so each training example) as a feature vector as well (where each entry in the vector is the outcome of a kernel function for that landmark). There's an enlightening slide on this in the scratchpad. Don't forget to add $f_0$ for each of these vectors  and set it to 1 (this is for your $\theta_0$ calculation).
+
+\subsection{Hypothesis and training with SVM and kernels}
+
+The hypothesis is in two steps, first for a given $x$, compute features $f$ ($f \in \mathbb{R}^{m+1}$ - $m$ dimensions as there's a landmark for each example and $+1$ to account for $\theta_0$). Then, predict $y = 1$ if $\theta^Tf \geq 0$.
+
+Training this algorithm means minimising the cost function using kernels:
+
+\begin{equation}
+\min_\theta C
+\sum_{i = 1}^{m}
+\left[
+y^{(i)} \textrm{cost}_1(\theta^Tf^{(i)}) +
+(1-y^{(i)})\textrm{cost}_0(\theta^Tf^{(i)})
+\right]
++ \frac{1}{2}\sum_{j = 1}^{n}\theta_j^2
+\end{equation}
+(worth noting that $m = n$ due to the way we picked landmarks and as always we don't count $\theta_0$ in the regularisation part)
+
+Now in implementation the regularisation is implemented slightly differently. First, realise that $\sum_j\theta_j^2 = \theta^T\theta$ (if you ignore $\theta_0$ which we are, as always, studiously doing). As it turns out, SVMs are implemented with a regularisation function that looks like this: $\theta^TM\theta$ where $M$ is some constant vector. This was hand waved some but is supposed to allow for larger datasets.
+
+This leads to a larger point - it is possible to use kernels in other algorithms but the methods to achieve computational efficiency specifically with SVM and kernels don't generalise well to other algorithms so it turns out that using kernels elsewhere is going to end up being very slow.
+
+\subsection{Bias and variance in SVM}
+
+\subsubsection{Parameter $C$}
+
+Remember SVM uses $C$ to control the balance between bias and variance (or between fitting parameters $\theta$ accurately and keeping them low).
+
+If $C$ is \emph{high}, expect lower bias and high variance (prone to over fitting). If $C$ is \emph{low}, expect higher bias and low variance (prone to under fitting).
+
+\subsubsection{Parameter $\sigma^2$}
+
+With $\sigma^2$ set high, features vary more smoothly (remember the graphs from a few sections ago - gentler slopes) which leads to \emph{higher bias} and \emph{lower variance}.
+
+The reverse also holds, $\sigma^2$ set to a low value means features vary much more sharply, leading to \emph{lower bias} and \emph{higher variance}.
+
+\section{Using an SVM - implementation details}
+
+In a nutshell - use someone else's work. Minimising the cost function is hard
+
+\subsection{Different kernel functions}
+
+\begin{description}
+\item[Linear kernel] Not actually a kernel function at all - produces a straight $\theta^Tx$. This can be useful if the number of features $n$ is large but the training set size $m$ is small.
+
+\item[Gaussian kernel] Described in detail above. This means you have to pick a $\sigma^2$ parameter. This is a good fit if $n$ is small and, ideally, $m$ is large. You might be asked to provide a kernel function yourself but it'll take care of mapping examples into feature vectors.
+
+Note: Do perform \emph{feature scaling} before processing the kernel function - if you have wild disparities in the order of magnitude of your features the distance calculations will end up dominated by the large features.
+
+\item[Other choices of kernel] Not all implementations are valid kernel functions - they must satisfy \emph{''Mercer's Theorem``}.
+
+A few that occasionally get use are the \emph{polynomial kernel} ($k(x,l) = (x^Tl)^2$ for example, or more generally $(X^Tl + \mathrm{constant})^{\mathrm{degree}}$ where you can pick a constant and a degree).
+
+A few more other, more esoteric kernels, are: String kernels (useful for text), chi-square kernel, histogram, intersection kernel.
+\end{description}
+
+\subsection{Multi-class problems}
+
+This is usually already covered in the software package you'd end up using, but if not use one-vs-all (for a problem with $K$ classifications, train $K$ SVMs, one to distinguish each $y = i$ where $i = 1, 2, \dots, K$ find $\theta^{(1)}, \theta^{(2)}, \dots \theta^{(K)}$ and pick class $i$ with the largest $(\theta^{(i)})^Tx$).
+
+\subsection{Logistic regression vs. SVM}
+
+Remember, number of features is denoted with $n$, number of training examples with $m$.
+
+If $n$ is large relative to $m$ (example: $n$ is roughly 10,000 or so, $m$ is around 10 - 1,000), use logistic regression (or SVM with a linear kernel).
+
+If $n$ is small (say 10,000) and $m$ is intermediate (10 to 10,000), use SVM with Gaussian kernel.
+
+If $n$ is small but $m$ is large (say from 50,000+ to millions or so) then create / add more features and then use logistic regression or SVM with linear kernel.
+
+Lastly, neural networks should work well for all these options but will probably be slow to train.
+
+\subsection{SVMs and optima}
+
+Turns out SVM optimisation is a convex problem - it should find the global optimum (or only optimum really) or something really close to it.

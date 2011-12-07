@@ -1,0 +1,210 @@
+% This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/3.0/ or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+\chapter{Advice for applying Machine Learning}
+
+If you find, after implementing an algorithm, that you aren't getting solid predictions, there's a few things that could be wrong. Here are some things to try:
+
+\begin{itemize}
+\item Get more training examples
+\item Try smaller feature sets
+\item Try getting additional features
+\item Try adding polynomial features
+\item Try decreasing $\lambda$
+\item Try increasing $\lambda$
+\end{itemize}
+
+There are good ways that aren't simply gut-feel to figure out which of these avenues, if any, will help improve performance of your learning algorithm.
+
+\section{Evaluating your hypothesis}
+
+When you use your hypothesis function you seek to minimise the training error. As we know from the problem of over fitting, this isn't actually always the best thing.
+
+One way to help evaluate a hypothesis function is to split your dataset into a \emph{training set} and a \emph{test set}. The normal split is around 70\% / 30\%.
+
+The notation used to talk about test examples: $M_{test}$ for the number of test examples, $(x^{(1)}_{test}, y^{(1)}_{test})$ for the first test example, et cetera.
+
+Unless your dataset is truly randomly ordered already, it is advisable to pick a random subset to be your test set (I'd imagine that if you go around the neighbourhood for 6 months and note down stuff about houses for that time, picking the test set of the end will mean they are the more recent entries, which might be a difficult difference between test and training data).
+
+\subsection{Training / test procedure for linear regression}
+
+\begin{itemize}
+\item Learn parameter $\theta$ from your training data.
+\item Compute test set error (referred to as $J_{test}(\theta)$)
+\end{itemize}
+
+\subsection{Training / test procedure for logistic regression}
+
+\begin{itemize}
+\item Learn parameter $\theta$ from your training data.
+\item Compute test set error (referred to as $J_{test}(\theta)$)
+\item (Optional but useful) Calculate the misclassification error. This basically returns a 1 if the algorithm got it right, and a 0 if it did not. If $err(h_\theta(x), y)$ is a function that returns those values you can calculate the test error using misclassification like so:
+\end{itemize}
+
+\begin{equation}
+Test error = \frac{1}{M_{test}} \sum_{i = 1}^{M_{test}}err(h_\theta(x^{(1)}_{test}), y^{(1)}_{test})
+\end{equation}�
+(there's a picture of the scribbles on the slide for this in the scratchpad).
+
+\subsection{Model selection and training/validation/test sets}
+
+Restating the problem with over fitting once again: If you have fit the parameters $\theta$ to your training set, the error as measured against your training set is likely to be lower than the actual \emph{generalisation rate}.
+
+You can express model selection as adding another parameter to your training algorithm (in this case expressed as $d$, for degree of polynomial). You would then be able to train up each of these different models and compare $J_{test}(\theta)$ (where $\theta$ is different for each model!
+
+Once you've picked the best performing model, you have a problem. The test data was used in the process of selecting the best fit, so any generalisation error you measure using it is likely to be an optimistic estimate.
+
+This is why we use the \emph{cross validation set} (or just validation set) to select the optimum model. The test set is then again used only to evaluate the model you picked independent of the examples used to train it (consider the cross validation set as part of the training because we used it to select the best fitting model).
+
+A common breakdown (and thus a useful rule of thumb) for this would be 60\%/20\%/20\% for training/evaluation/testing respectively.
+
+\subsection{Diagnosing bias vs variance}
+
+High bias or high variance (in other words, under fitting or over fitting) are the most common reason of poor algorithmic performance.
+
+The lovely figures are in the scratchpad but basically if both your training error -and- your validation error are high, you're likely to have a \emph{high bias} (under fitting problem), if your training error is low but your validation error is high, you are likely to have a \emph{high variance} (over fitting problem). This makes intuitive sense anyways.
+
+\subsection{Regularisation and bias / variance}
+
+A $\lambda$ that's set too high encourages high bias (under fitting). A $\lambda$ that's set too low encourages high variance (over fitting).
+
+To programmatically find a $\lambda$ that is a good fit, use $J_{train}(\theta)$, $J_{cv}(\theta)$, $J_{test}(\theta)$ without regularisation. You use the regularised version of $J(\theta)$ in your model and create different models with different values for $\lambda$.
+
+You minimise $J(\theta)$ as normal and then cross validate them on your cv set (no regularisation parameter in that).
+
+If you were to plot $J_{training}$ (remember, not regularised) and $J_{test}$ on a plot with increasing values of $\lambda$ on the horizontal, you'd find $J_{training}$ starts quite low (little to no regularisation allows for over fitting) and the $J_{test}$ quite high. As you move towards higher values of $\lambda$, $J_{training}$ will increase but for a while $J_{test}$ will decrease. At some point $J_{test}$ will start increasing again while $J_{training}$ will continue to skyrocket. (this is because higher values of $\lambda$ encourage under fitting). There's some pictures of this in the scratchpad.
+
+\subsection{Learning curves}
+
+A learning curve is a plot of either the learning error and the cross validation error against training set size. For this you artificially reduce the number of training examples your algorithm uses.
+
+At very small training set sizes, it is easy to fit your data - error rates should be small. As your $m$ increases, error rate should increase gradually (as it becomes harder and harder to fit every training  datapoint perfectly).
+
+The cross validation error has an opposite behaviour - with a small dataset, it is likely to be pretty ordinary, but as the number of data points increases, your cross validation error decreases.
+
+\subsubsection{Learning curves and high bias}
+
+High bias (under fitting) will result in a training set error line that starts high and asymptotes horizontally pretty early in the piece. The reason is reasonably obvious - there's only so much an under fitted hypothesis can do to predict your training set. Your training error will start at zero and quickly go up to meet the cross validation error (and asymptotes at roughly the same point).
+
+\emph{As such, if your algorithm is having high bias issues, piling on more training data will not help you.}
+
+\subsubsection{Learning curves and high variance}
+
+With small datasets, your training error will be very small (high order polynomials are easy to fit around few data points). At higher numbers of datasets the training error increase somewhat but stays relatively low (remember - high order polynomials).
+The cross validation error will start high and gradually decrease, leaving a wide gap between the two error rates.
+
+\emph{More training data is likely to slowly decrease the gap between the two error rates.} As such, in high variance situations, more training data is likely to help.
+
+\section{Conclusion}
+
+\begin{itemize}
+\item Get more training examples if you have a \emph{variance problem}.
+\item Try smaller feature sets if you have a \emph{variance problem}.
+\item Try getting additional features to (usually) fix \emph{high bias} problems (more complicated hypothesis).
+\item Try adding polynomial features for \emph{high bias} problems.
+\item Try decreasing $\lambda$ to fix \emph{high bias}. (also easy to do!)
+\item Try increasing $\lambda$ to fix \emph{high variance}. (this is just as easy!).
+\end{itemize}
+
+As such, playing with $\lambda$ is a good place to start.
+
+\subsection{Neural networks}
+This stuff relates back to neural nets as well, to some extent. Smaller neural nets are cheaper (computationally) but are prone to under fitting. Larger neural nets are more prone to over fitting. 
+
+Generally, the larger the neural net, the better so instead of shrinking the net, use regularisation to address over fitting problems.
+
+You can use the training/cross validation/testing sets technique to find an optimal number of hidden layers. As a general guideline, one hidden layer is a good starting point.
+
+\chapter{Machine Learning System Design}
+
+\section{Prioritising tasks}
+
+If you're building say, a spam filter, there's a few things you can spend time on to improve performance:
+
+\begin{itemize}
+\item Collect lots of data (honeypots)
+\item Develop more sophisticated features based on email routing info
+\item Make more sophisticated features out of the body itself (merge `discount' and `discounts'. Does punctuation matter? Capitalisation?
+\item Make more sophisticated algorithms to catch deliberate spelling errors (w4tches, v14gr4, etc).
+\end{itemize}
+
+Working out a method to prioritise these various options would be very helpful!
+
+\section{Error analysis}
+
+The recommended approach for implementing a Machine Learning system is as follows:
+
+\begin{enumerate}
+\item Start with a simple, easily verifiable algorithm and run it against your cross-validation set.
+\item Plot the learning curves to see if more data, more features, tweaking $\delta$ and such would help.
+\item Error analysis: Manually check the failure examples in your cross validation set to see if there's trends to discover there.
+\end{enumerate}
+
+In this spam example, you'd classify the failure examples into different categories such as pharma, replicas, phishing, et cetera. Counting the emails in each category should help inspire better features. This is where you'd classify each of the emails into categories that'd have helped catch the emails: deliberate misspellings, weird routing info, that sort of thing.
+
+What is important in evaluating algorithms is a good \emph{numerical evaluation}. This means that the outcome of the algorithm can easily be measured by a real number. This could be a certainty rating, for example. Having this single number lets you rapidly compare different decisions, like stemming, capitalisation differentiation, etc.
+
+Also a note on spam problems specifically - stemming is a good thing to consider implementing - this'll help group discount, discounts and discounting into the same proto-word. It might cause additional problems however, as it might group words like universe and university.
+
+Remember to only use your cross-validation set for these kinds of decisions - using your test set would contaminate the results of the test run later.
+
+\section{Error metrics for skewed classes}
+
+Skewed classes are cases where an occurrence of a particular class is very rare. The example given was cancer diagnosis - if you have a 1\% error rate, but the occurrence of cancer is only 0.5\%, your result is useless (predicting false every time would only get you a 0.5\% error rate, after all).
+
+In these cases, classification accuracy is not likely to be a good fit (introducing more negatives might well increase classification accuracy but actually cause more false negatives, for example).	
+
+\subsection{Precision / recall}
+
+First some terminology (all of these refer to the rare case you want to detect): If an example is true and was predicted to be true, you have a \emph{true positive}. If it is false and predicted to be false, a \emph{true negative}. If it is false and predicted to be true, you have a \emph{false postive}, and lastly if it is true and predicted to be false, a \emph{false negative}.
+
+With those definitions out of the way, \emph{precision} is defined as 
+
+\begin{equation}
+\textrm{Precision} = \frac{\textrm{True positives}}
+{\textrm{Predicted positives (True positives + False positives)}}
+\end{equation}
+
+\emph{Recall} is defined as:
+
+\begin{equation}
+\textrm{Recall} = \frac{\textrm{True positives}}
+{\textrm{Actual positives (True positives + False negatives)}}
+\end{equation}
+
+This helps weed out an algorithm that tends to predict $y = 0$ for everything (remember that in the above case, that'd only be an error rate of 0.5\%). This would have a recall rate of 0.
+
+On a note of good habits: the default for these rare cases is to use $y = 1$ for the rare case.
+
+Lastly, there's a pretty good precision / recall visual summary in the scratchpad.
+
+\section{Trading off precision and recall}
+
+In the case of logistic regression (classifying an example into two or more classes), you can trade off precision and recall by changing the point where $h_\theta(x)$ predicts 1. So far we've defaulted this to $0.5$, but you could set it to anything higher than that. This will make you more certain of your predicted positives (higher precision) but will likely lead to more false negatives (lower recall).
+
+The opposite is obviously also true - you can lower the \emph{threshold} if you want to ensure you don't miss many cases of a class (say in case of cancer diagnosis - missing a correct diagnosis is probably worse than a false positive). This'll lead to higher recall, but lower precision.
+
+\subsection{$F_1$ Score (or F Score)}
+
+Trying to tie back precision and recall into a single score for the purposes of comparing implementation details, it might be obvious to try the average. This negates the advantage of the scores because you once again can get good scores by simply always predicting $y = 0$, for example.
+
+To combat this and still allow a single real number as a measurement of algorithmic efficiency, the F score:
+
+\begin{equation}
+F_1 \textrm{score} = 2\frac{ PR}{P + R}
+\end{equation}
+(where, naturally, $P$ stands for Precision and $R$ for Recall)
+
+This $F_1$ score penalises low values for either P or R and so scores highly only if both scores are acceptable. As P and R itself, it ranges between 0 and 1 with higher being better.
+
+\section{Data for Machine Learning}
+
+In studies it's generally been shown that even `inferior' algorithms can be made as performant (or close to) as theoretically better algorithm by supplying it with more training data. This is very useful in the conditions where this common wisdom holds true.
+
+These conditions are basically:
+
+\begin{enumerate}
+\item Each example's $x$ contains enough information to predict $y$. (rough test: could a human expert do it with that information?)
+\item We are using a low bias algorithm (linear or logistic regression with many features, neural net with many hidden units).
+\end{enumerate}
+
+If those two hold true then having a massive training set will help combat over fitting, which in turn should lead to better results on your test data. (basically the conditions described create a low bias setting but would be prone to over fitting without masses of training data).

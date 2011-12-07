@@ -1,0 +1,127 @@
+% This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/3.0/ or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+\chapter{Neural Networks: Learning}
+\section{Cost function and classification types}
+
+For a neural network, we will use $L$ to represent the number of layers in the network, and $S_l$ to represent the number of units (not counting bias units) in layer $l$. 
+
+We will be considering two types of classification problems, \emph{binary classification} and \emph{multi-class classification}.
+
+\subsection{Binary classification}
+
+$y = 0 or 1$
+
+1 output unit
+
+\subsection{Multi-class classification (for $K$ classes)}
+
+$y \in \mathds{R}^K$
+
+This looks like:
+
+$y =
+\begin{bmatrix}
+      1 \\
+      0 \\
+      0 \\
+      0 \\
+\end{bmatrix}$
+or
+$y =
+\begin{bmatrix}
+      0 \\
+      0 \\
+      1 \\
+      0 \\
+\end{bmatrix}$
+etc. for $K = 4$ (note this means only ever one $1$ result).
+
+\subsection{Cost function}
+
+The cost function we're using will be a generalisation of the cost function for logistic regression:
+\begin{equation}
+	J(\theta) = -\frac{1}{m}\left[\sum^m_{i = 1}
+	y^{(i)}log(h_\theta(x^{(i)}) - (1-y^{(i)})log(1-h_\theta(x^{(i)}))\right] +
+\frac{\lambda}{2m}\sum^n_{j = 1}\theta^2_j
+\end{equation}
+
+For a neural network of $K$ outputs, the equation looks like this:
+
+\begin{equation}
+J(\Theta) = \frac{1}{m}\sum^m_{i = 1}\sum^K_{k = 1}
+\left[
+-y_k^{(i)}log((h_\Theta(x^{(i)}))_k) -
+(1-y_k^{(i)})log(1-(h_\theta(x^{(i)}))_k)\right] +
+\frac{\lambda}{2m}\sum^{L-1}_{l = 1}\sum^{s_l}_{i=1}\sum^{s_l + 1}_{j=1}(\Theta^{(l)}_{ji})^2
+\end{equation}
+
+Remember that $h_\Theta(x) \in \mathds{R}^K$ (in other words, the output of $h_\Theta(x)$ is an $K$-dimensional vector). Also, the notation $(h_\Theta(x))_i$ is used to denote the $i^{th}$ output of the function.
+
+\section{Backpropagation algorithm}
+
+In order to minimise the function $J(\Theta)$ we described above, we'll need the same thing we needed in logistic regression - $J(\Theta)$ and the partial derivatives, this time over $l$, $i$, and $j$ - $\frac{\partial}{\partial\Theta^{(l)}_{ij}}J(\Theta)$.
+
+In general terms, back propagation works by calculating the "error rate" of a particular node (you take the $4^{th}$ unit of the output layer, compare it against the $4^{th}$ unit of the $y$ vector supplied and there you go (screenshot in scratchpad).
+
+For the output layer, calculating this $\delta$ isn't hard (take layer 4 to be the output):
+
+\[
+\delta_j^{(4)} = a_j^{(4)} - y_j
+\]
+or, vectorised:
+\[
+\delta^{(4)} = a^{(4)} - y
+\]
+
+The previous layer worth of $\delta$ values is a little more complicated:
+
+\begin{equation}
+	\delta^{(3)} = (\Theta^{(3)})^T \delta^{(4)} .* g'(z^{(3)})
+\end{equation}
+
+Where $.*$ is the point wise operator as seen in Octave, and $g'$ is the derived function of the sigmoid function. This works out to be the following:
+\[
+g'(z^{(3)}) = a^{(3)} .* (1 - a^{(3)})
+\]
+
+Remember the $a^{(3)}$ variable contains the activations for the third layer.
+
+Realise there is no $\delta^{(1)}$, as we don't want to adjust the input values.
+
+Through some serious math voodoo, it is possible to prove that
+
+\begin{equation}
+\frac{\partial}{\partial\Theta^{(l)}_{ij}}J(\Theta) = 
+a_j^{(l)}\delta_i^{(l + 1)}
+\end{equation}
+if you ignore regularisation.
+
+There's an important slide in the scratchpad showing a step by step of what an implementation of this would look like for multiple examples, including a vectorised calculation for $\Delta$ (capital letter $\delta$).
+
+In a very high-level way, this whole algorithm works like waves on a shore - forward propagate with your initial values, backward propagate a change in $\Delta$, forward propagate with your new best guess, backward propagate for a new $\Delta$, et cetera.
+
+\section{Implementation detail - unrolling matrices into vectors}
+
+There are a few screenshots in the scratchpad that deal with this but in a nutshell, for implementation reasons, Octave optimisation functions assume their input to be a singular vector for $\Theta$ and for $\Delta$. The screens show the way to massage your separate $\theta$ and $\delta$ values into one long vector and back again.
+
+\section{Gradient checking}
+
+A downside to backdprop is that it is relatively inscrutable - it is easy for subtle bugs to sneak in that make the algorithm look superficially like it's working but cause problems in its performance. Gradient Checking, I'm told, eliminates most all of that class of bugs.
+
+It comes down to the fact you can estimate the gradient like so:
+
+\begin{equation}
+\frac{\partial}{\partial\theta}J(\theta) \approx
+\frac{J(\theta + \epsilon) - J(\theta - \epsilon)}{2\epsilon}
+\end{equation}
+you'd usually choose small values for $epsilon$. For a visualisation, see the scratchpad (though this is basic high school geometry!!). The value recommended as a starting point for $\epsilon$ is $10^{-4}$.
+
+\section{Random initialisation}
+
+Initialise values for $\Theta$ randomly to break symmetry. There's some screens in the scratchpad to visualise it. If you initialise $\Theta$ using the same value for each member of the collection, you end up with a symmetrical neural net that in practical terms only calculates one feature (very wastefully).
+
+\section{Bringing it all together}
+
+For your first implementation of backprop, you want to use a for loop iterating over your features from 1 to m. There is an advanced way to perform this vectorised but for now, use a for loop to forward-propagate and then backprop for each example.
+
+It's worth noting that $J(\Theta)$ is non-convex. That is, it is theoretically possible for optimisation methods to converge on a local, rather than the global, minimum. I was assured this is not usually a practical problem.

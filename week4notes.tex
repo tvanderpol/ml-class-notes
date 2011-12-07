@@ -1,0 +1,57 @@
+% This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/3.0/ or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+\chapter{Neural Networks}
+\section{Non-linear Hypotheses}
+When working with a large amount of features in your dataset, fitting polynomial terms becomes cumbersome very fast. While a dataset with two features can fit some pretty complex polynomials (e.g.: $g(\theta_0 + \theta_1x_1 + \theta_2x_2 + \theta_3x_1x_2 + \theta_4x_1^2x_2 + \theta_5x_1^3x_2 + \theta_6x_1x_2^2 + \dots)$) but the number of features grows $O(n^2)$ for quadratic polynomials (as I understand it, features of the form $x_1x_2$ or $x_1^2$) with the actual number being close to $\frac{n^2}{2}$. Cubic features (of form $x_1x_2x_3$ or $x_1^2x_2$ or $x_1^3$, you get the idea) grow $O(n^3)$.
+
+The example of recognising cars in images was used as an intractable problem using high-polynomial linear regression.
+
+\section{Neurons and the brain}
+Neural networks were originally created as algorithms to mirror the brain. They were popular in the '80s and '90s, fell out of favour and have had a recent resurgence. One reason for this is neural networks is computationally relatively expensive and only relatively recently have computers become powerful enough to make large neural nets possible.
+
+The brain is hypothesised to work with only one learning algorithm (as opposed to many different ones for many different tasks). Experiments have been performed that rewire inputs to different parts of the brain (the bit normally associated with hearing rewired to take optical input, for example) and have shown that these parts of the brain will learn to process the new input.
+
+Some seriously cool examples were shown of re-routing inputs in humans. It is possible (at least to some extent) to see with one's tongue. A camera is connected to a grid of electrodes placed on tongue, with varying voltages for brightness. Echolocation can be learned for humans as well. (Haptic belt for directional sense and implanting a third eye in frogs were also mentioned).
+
+\section{Model representation}
+
+Neural nets were designed to approximate networks of neurons in the brain.
+
+Very crudely, neurons consist of a cell body, input wires and an output wire. More details here http://en.wikipedia.org/wiki/Neuron
+
+There's a picture of an artificial neuron in the scratchpad. It is represented as having ``input wires'' in the form of $x_1$, $x_2$, $x_3$ etc. It's dendrite (or output) is $h_\theta(x)$ where $h_\theta(x) = \frac{1}{1 + e^{-\Theta^TX}}$. $x_0$ is usually left of graphical representations of neural nets. It's formal name is the ``bias node''. A logistic unit of this type is said to have a \emph{Sigmoid (or logistic) activation function}. Lastly, $\theta$ is sometimes referred to as the ``weights'' of a unit (this lines up with the ML stuff in the AI class!).
+
+\subsection{Some concrete notation and implementation}
+
+Refer to the pictures in the scratchpad for the visual aids. A node in a neural net is named $a_i^{(j)}$, representing the ``activation'' of unit $i$ in layer $j$. $\Theta^{(j)}$ is the matrix of weights controlling function mapping from layer $j$ to layer $j + 1$. The dimensions of $\Theta^{(j)}$ for a network with $s_1$ units in layer $j$ and $s_2$ units in layer $j + 1$ will be $s_2 \cdot (s_1 + 1)$.
+
+\subsection{Vectorised implementation - forward propagation}
+
+For convenience, the \emph{weighted linear combination} as it gets put into the Sigmoid function can be referred to as $z_i^{(j)}$. The superscript is the layer of the neural network we're referring to, so $z_1^{(2)}$ is the weighted linear combination used to compute the first node in the second layer.
+
+To go over this with some more symbols, whereas we'd previously have written $a_1^{(2)} = g(\Theta_{10}^{(1)}x_0 + \Theta_{11}^{(1)}x_1 + \Theta_{12}^{(1)}x_2 + \Theta_{13}^{(1)}x_3)$ we can now write $a_1^{(2)} = g(z_1^{(2)})$. So in other words, $z_1^{(2)} = \Theta_{10}^{(1)}x_0 + \Theta_{11}^{(1)}x_1 + \Theta_{12}^{(1)}x_2 + \Theta_{13}^{(1)}x_3$.
+
+This part is more obvious when also looking at the scratchpad, but the collection $z^{(2)}$ is actually exactly $\Theta^{(1)}x$ in the same was as we've been using it for linear and logistical regression. The next part becomes reasonably straight-forward linear algebra (which wouldn't have been so straight-forward even a month ago!):
+
+\begin{equation}
+	\label{eq1}
+	z^{(2)} = \Theta^{(1)}x
+\end{equation}
+\begin{equation}
+	a^{(2)} = g(z^{(2)})
+\end{equation}
+Where both $a^{(2)}$ and $z^{(2)}$ are three dimensional vectors.
+
+You can then define $x$ as $a^{(1)}$ (``the activations of the input layer'') which pretends nicely that they were computed by a preceding  layer instead of provided values. You can then generalise \eqref{eq1} to
+
+\begin{equation}
+	z^{(2)} = \Theta^{(1)}a^{(1)}
+\end{equation}
+
+To get the bias unit in there as well, just add $a_0^{(2)} = 0$ after the calculation.
+
+The process of computing the neural network this way is called \emph{forward propagation}.
+
+\section{Classification problems using Neural Networks}
+
+If you have 4 classes you want your net to distinguish between (as opposed to some binary problem), you define 4 units on your output layer (or, in other words, $h_\Theta(x) \in \mathds{R}^4$, or $h\Theta(x)$ is a 4-dimensional vector containing real numbers).
