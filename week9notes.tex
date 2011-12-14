@@ -1,0 +1,303 @@
+\chapter{Anomaly Detection}
+\section{Problem motivation}
+
+The use for anomaly detection - finding outliers in datasets. Example provided was aircraft engines with datasets like vibration intensity and heat generated.
+
+More formally - given a dataset (assumed to be non-anomalous), is $x_{test}$ anomalous? We build a model $p(x)$ such that if $p(x_{test}) \textless \epsilon$ we flag it as anomalous and if $p(x_{test}) \geq \epsilon$ it is okay. (we pick the parameter $\epsilon$ later).
+
+\emph{Fraud detection} is a common use of anomaly detection. \emph{Monitoring computers in data centre} would also be a good fit (tracking cpu load, network traffic, that sort of thing).
+
+If you are getting too many false positives in your system, the correct course of action would be to \emph{decrease $\epsilon$}.
+
+\subsection{Gaussian distribution}
+
+A quick review. If $x$ ($x \in \mathbb{R}$) is a distributed gaussian (or normal distribution) with mean $\mu$ and variance $\sigma^2$, you'd put this down as $x \sim \mathcal{N}(\mu, \sigma^2)$. Graphing this shows a familiar bell curve with $\mu$ being the location of the peak and $\sigma$ being one standard deviation. To get this curve, the following formula:
+\begin{equation}
+p(x;\mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma}}
+\exp\left({-\frac{(x - \mu)^2}{2\sigma^2}}\right)
+\end{equation}
+This formula should not generally be directly needed but hey.
+
+There's some images in the scratchpad that help visualise this. A property of probability distribution is that the surface under the graph needs to integrate to 1 (so smaller values of $\sigma$ means higher graphs to make up the surface).
+
+\subsubsection{Parameter estimation}
+
+The case where you have a distributed set of data and you have to find the parameters $\mu$ and $\sigma^2$ is common. Here's the formulas needed to find the parameters:
+
+\[
+\mu = \frac{1}{m}\sum^m_{i = 1}x^{(i)}
+\]
+\[
+\sigma^2 = \frac{1}{m}\sum^m_{i = 1}(x^{(i)} - \mu)^2
+\]
+
+Basically a fancy way of saying $\mu$ is the average and $\sigma^2$ is, well.. the squared standard deviation, both of which are trivial to compute.
+
+\section{Anomaly detection algorithm}
+
+For an $m$ sized training set where each $x \in \mathbb{R}^n$: 
+\[
+p(x) = p(x_1;\mu_1, \sigma^2_1)p(x_2;\mu_2, \sigma^2_2) \dots p(x_n;\mu_n, \sigma^2_n)
+\]
+More compactly:
+\[
+p(x) = \prod^n_{j = 1}p(x_j;\mu_j, \sigma^2_j)
+\]
+Or, in plainer english, the probability of each example is the product of the probabilities of each of its features, where each feature has it's own gaussian distribution parameters ($\prod$ is the symbol used to indicate a product over a set much like $\sum$ is used for its sum).
+
+With all that said, here's the algorithm in full:
+
+\begin{description}
+\item[Choose features $x_i$.] Pick ones that are either going to be useful in finding anomalies or have a general purpose in describing your problem domain (the idea being that if you have a set of features that describe normal operation, they should vary significantly when something's off).
+\item[Fit all $\mu$ and 	$\sigma$ parameters.] Fit $\mu_1$ through $\mu_n$ and $\sigma_1$ through $\sigma_n$ like so:
+\begin{align*}
+\mu_j 				&= \frac{1}{m}\sum^m_{i = 1}x^{(i)}_j \\
+\sigma^2_j 	&= \frac{1}{m}\sum^m_{i = 1}(x^{(i)}_j - \mu_j)^2
+\end{align*}
+\item[Given a new example $x$, compute $p(x)$.]:
+\[
+p(x) = \prod^n_{j = 1}p(x_j;\mu_j, \sigma^2_j) = 
+\frac{1}{\sqrt{2\pi\sigma_j}}
+\exp\left({-\frac{(x_j - \mu_j)^2}{2\sigma^2_j}}\right)
+\]
+The example $x$ is anomalous when $p(x) \textless \epsilon$.
+\end{description}
+
+This probably no longer needs to be highlighted but just to have it all in one place: $\exp{x} = e^x$
+
+\section{Developing an anomaly detection system}
+
+In order to be able to use \emph{real-number evaluation} while developing this system, we'll need a (relatively small) set of labelled data. In this case that means we have a set of data of known anomalies. Then, as before, we get a training set (preferably non-anomalous but it's okay if a few anomalies slip in).
+You then use the anomalous examples (or the labelled dataset, if you prefer) and part of your unlabelled dataset to create a \emph{cross-validation} and a \emph{test} set to use as we have before. A decent breakdown, given 10,000 unlabelled examples and 20 known anomalous ones would be:
+
+\begin{description}
+\item[Training set] 6000 unlabelled examples
+\item[Cross-validation set] 2000 unlabelled examples, 10 anomalous
+\item[Test set] 2000 unlabelled examples, 10 anomalous
+\end{description}
+
+\subsection{Algorithm evaluation}
+
+Now with our various datasets in hand, here's what we do:
+
+\begin{description}
+\item[Fit model $p(x)$ on our training set]
+\item[On cv and later test set, predict $y$] where we have defined $y$ as 1 if the example is anomalous (that is, if $p(x) \textless \epsilon$.
+\item[Evaluate algorithm performance] This can be done with the same methods we've discussed earlier - Precision/recall stats, or the $F_1$ score (or true positive, false positive, true negative, false negative counts).
+\end{description}
+Note that you can use the CV-set to choose $\epsilon$ (who didn't see that coming at this point?).
+
+\section{Anomaly detection vs. supervised learning}
+
+Based on the algorithm evaluation stuff we just did it seems like you could substitute any supervised learning algorithm that performs well on classification problems for the anomaly detection algorithm we just discussed. Here's some guidelines on when to use what:
+
+\begin{description}
+\item[Very small number of positive examples] Anomaly detection is a good fit for this case.
+\item[Unknown future anomalies] If you have a small set of positive examples (anomalies) and aren't sure what future anomalies might look like, anomaly detection is a good fit (think of all the ways an airplane engine might be faulty - not just the ways you've seen before)
+
+\end{description}
+
+As a pithy summation: When you're actually looking for anomalies, use anomaly detection. 
+
+\section{Choosing what features to use}
+
+Anomaly detection is more sensitive to feature selection than some of the other algorithms we discussed. Here's some things you can do to help feature selection.
+
+\begin{description}
+\item[Massage your data] It's useful to see if your data is actually at least vaguely gaussian in distribution (by plotting a histogram, for example). The algorithm can be used on data that is non-gaussian but a fitting distribution is preferable. One thing you can do is find a transform of the feature that might make it fit better as a gaussian. Some transforms that might be helpful are (for a feature $x$): $\log(x)$, $\log(x + c)$ (find a $c$ to maximise gaussian-ness), $\sqrt{x}$, or more generally $x^c$.
+\item[Error analysis] It's not uncommon to see $p(x)$ be quite similar numerically for a normal and an anomalous example. It can be very helpful to look at misclassified examples by hand and see if you can create a new feature that makes the misclassified example more anomalous (you could use a square or other higher-order version of an existing feature, for example).
+\item[Choose features that might take on very large or very small values in case of anomalies] If normally two features are linearly related (say, CPU load and network traffic in a web server), you can create another feature that'd be the ratio between those two. That way, when the CPU load runs away but the network traffic is staying where it is, you can have features that grow very large in anomalous conditions.
+\end{description}
+
+You're really trying to draw a sharp contrast in as many anomalous cases as possible.
+
+\section{Multivariate gaussian distribution}
+
+If two or more features have some relationship with one another (say, CPU load and memory usage in the example case where they scale roughly linearly), normal anomaly detection might not detect cases where both values are within acceptable parameters but far away from the usual relationship. An example would be an acceptably low CPU use coupled with an acceptably high memory use - while neither value is anomalous in isolation, the fact that this completely breaks the linear relationship in all other examples should mean this gets flagged as anomalous.
+
+In multivariate gaussian distribution, we'll be modelling $p(x)$ in one go, as opposed to breaking it down into the product of $p(x_1), p(x_2), \dots, p(x_n)$.
+The parameters we'll need are: 
+\begin{description}
+\item[$\mu$] Where $\mu \in \mathbb{R}^n$
+\item[$\Sigma$] Where $\Sigma \in \mathbb{R}^{n \times n}$ this is a covariance matrix like we've seen before.
+\end{description}
+
+With these parameters in hand, the formula now becomes:
+\[
+p(x; \mu, \Sigma) = 
+\frac{1}{(2\pi)^{\frac{n}{2}} |\Sigma|^{\frac{1}{2}} }
+\exp{\left(
+-\frac{1}{2}(x - \mu)^T \Sigma^{-1}(x-\mu)
+\right)}
+\]
+
+The notation $|\Sigma|$ means the \emph{determinant} of $\Sigma$ which is some fancy transformation we don't need to know the details about other than to remember we can do this by using \texttt{det(Sigma)} in Octave.
+
+\subsection{Using multivariate gaussian distribution in anomaly detection}
+
+First we need to fit the parameters. This might look familiar:
+
+\begin{align*}
+\mu 			&= \frac{1}{m}\sum^m_{i = 1}x^{(i)} \\
+\Sigma		&= \frac{1}{m}(x^{(i)} - \mu)(x^{(i)}-\mu)^T
+\end{align*}
+
+Then, given a new example we simply compute $p(x)$:
+\[
+p(x) = 
+\frac{1}{(2\pi)^{\frac{n}{2}} |\Sigma|^{\frac{1}{2}} }
+\exp{\left(
+-\frac{1}{2}(x - \mu)^T \Sigma^{-1}(x-\mu)
+\right)}
+\]
+
+Lastly, flag $x$ as an anomaly if $p(x) \textless \epsilon$.
+
+Serves two, stir to taste.
+
+\subsection{Relationship to original (univariate) model}
+
+Turns out that if the contours of the gaussian distribution are aligned with the axis (or, where $\Sigma$ (the covariance matrix) has 0 as its non-diagonal elements), both models evaluate to the same probabilities!
+
+So in other words, the original model is a specific case of the multivariate gaussian model, specifically one where relationships between features are not taken into account.
+
+You'd want to use the multivariate gaussian model when:
+\begin{description}
+\item[You want to use the relationship between features automatically] The original model requires you to create features manually that describe the relationship between features. Multivariate takes these relationships into account automatically.
+\item[You have a relatively small number of features] Multivariate is more computationally expensive and scales poorly with $n$.
+\item[$m \textgreater n$] You actually cannot use this model if that's not the case, as $\Sigma$ is non-invertible if $m \leq n$.
+\end{description}
+
+One last note - if you find $\Sigma$ is not invertible and $m$ is greater than $n$ then the reason is likely that  you have redundant features (so either features that are equal or are exactly linearly dependent).
+
+\chapter{Recommender systems}
+
+Recommender systems are exactly what you think they are - Amazon, Netflix, iTunes, et cetera. To illustrate how to build one, we'll be using the example of a movie recommender system (a very small set of sample data is included in the scratchpad).
+
+\begin{description}
+\item[$n_u$] Number of users
+\item[$n_m$] Number of movies
+\item[$r(i, j)$] 1 if user $j$ has rated movie $i$
+\item[$y^{(i, j)}$] Rating given to movie $i$ by user $j$ (defined only if $r(i, j) = 1$.
+\end{description}
+
+\section{Content based recommendations}
+If you have the ability to assign features to particular films, like $x_1$ being a rating from 0 to 1 on how romantic a film is, or $x_2$ how much action's in it. Add the intercept term ($x_0 = 1$) as usual, you can use content based recommendations.
+
+You basically use linear regression to predict star ratings by treating each user individually based on past ratings (this doesn't seem like it'd maximise the usefulness of all the data you have on hand, but hey!).
+
+So we can now find $\theta^{(j)}$ by minimising the cost function, which looks like this:
+\[
+\min_{\theta^{(j)}} \frac{1}{2}\sum_{i:r(i,j) = 1}
+\left(
+(\theta^{(j)})^T(x^{(i)}) - y^{(i, j)}
+\right)^2
++
+\frac{\lambda}{2}\sum^n_{k = 1}(\theta_j^{(k)})^2
+\]
+This neat little thing $\sum_{i:r(i,j) = 1}$ is ``sum over all $i$ where $r(i, j) = 1$.
+
+This approach should look very familiar - linear regression with regularisation.
+
+To find all $\theta$ values ($\theta^{(1)}, \theta^{(2)}, \dots, \theta^{(n_u)}$) we just add a summation to that to make it look even scarier:
+
+\[
+\min_{\theta^{(j)}} \frac{1}{2}
+\sum_{j = 1}^{n_u}
+\sum_{i:r(i,j) = 1}
+\left(
+(\theta^{(j)})^T(x^{(i)}) - y^{(i, j)}
+\right)^2
++
+\frac{\lambda}{2}
+\sum_{j = 1}^{n_u}
+\sum^n_{k = 1}(\theta_j^{(k)})^2
+\]
+
+\section{Collaborative Filtering}
+
+Collaborative filtering has the interesting property of being \emph{feature learning}, that is, it can find out features to use by itself.
+
+It essentially reverses the problem - it assumes that each user has associated with them what amounts to their values of $\theta$ (that is, user really likes action movies, but doesn't like romantic comedies). Working backwards from that it extrapolates what each movie would rate in these categories.
+
+To learn a single feature of a movie (Given $\theta^{(1)}, \theta^{(2)}, \dots, \theta^{(n_u)}$, learn $x^{(i)}$):
+\[
+\min_{x^{(i)}} \frac{1}{2}
+\sum_{j:r(i,j) = 1}
+((\theta^{(j)})^Tx^{(i)} - y^{(i, j)})^2 +
+\frac{\lambda}{2}
+\sum^n_{k = 1}
+(x^{(i)}_k)^2
+\]
+
+To learn all the features of a movie (Given $\theta^{(1)}, \theta^{(2)}, \dots, \theta^{(n_u)}$, learn $x^{(1)}, \dots, x^{(n_m)}$):
+\[
+\min_{x^{(i)}} \frac{1}{2}
+\sum_{i=1}^{n_m}
+\sum_{j:r(i,j) = 1}
+((\theta^{(j)})^Tx^{(i)} - y^{(i, j)})^2 +
+\frac{\lambda}{2}
+\sum_{i=1}^{n_m}
+\sum^n_{k = 1}
+(x^{(i)}_k)^2
+\]
+
+So, between the previous section and this one, we can now find $\theta$ given $x$ and we can find $x$ given $\theta$. As it turns out, you can avoid the chicken / egg problem in this by simply guessing some values for $\theta$, using them to find $x$, using that to refine $\theta$, et cetera! Excitingly, this eventually converges to a pretty decent set of values.
+
+\section{Collaborative Filtering algorithm}
+
+Turns out there's an algorithm that solves for both the $x$es and the $\theta$s. We basically mash the two preceding ideas together and arrive at a (rather unholy) formulation:
+
+\[
+J(x^{(1)}, \dots, x^{(n_m)}, \theta^{(1)}, \dots, \theta^{(n_u)}) =
+\frac{1}{2}
+\sum_{(i,j):r(i,j) = 1}
+((\theta^{(j)})^Tx^{(i)} - y^{(i, j)})^2
++
+\frac{\lambda}{2}
+\sum_{i=1}^{n_m}
+\sum^n_{k = 1}
+(x^{(i)}_k)^2
++
+\frac{\lambda}{2}
+\sum_{j = 1}^{n_u}
+\sum^n_{k = 1}(\theta_j^{(k)})^2
+\]
+
+Which we then minimise like this:
+\[
+\min_{
+	x^{(1)}, \dots, x^{(n_m)},
+	\theta^{(1)}, \dots, \theta^{(n_u)}
+}
+J(x^{(1)}, \dots, x^{(n_m)}, \theta^{(1)}, \dots, \theta^{(n_u)})
+\]
+
+The double summations fall away because all they're really doing is summing over all $(i,j) : r(i,j) = 1$ or, all the movie / user pairs for which exists a rating.
+
+When we do this minimisation objective where we're more or less finding out everything, we do away with the convention $x_0 = 1$ and just let the algorithm sort it all out by itself. This means that finally, $x \in \mathbb{R}^n$ instead of $x \in \mathbb{R}^{n + 1}$
+
+So, with all that out of the way, here's how the whole thing fits together:
+
+\begin{enumerate}
+\item Initialise $x$ and $\theta$ to small values
+\item Minimise $J(x, \theta)$ using gradient descent or some other algorithm.
+\item We can now predict for a user with parameters $\theta$ and a movie with (learned) features $x$, we can now predict a rating for an as of yet unrated movie by $\theta^Tx$.
+\end{enumerate}
+
+\section{Vectorisation: Low rank matrix factorisation}
+If you put all your values for $x$ into a matrix $X$ (transposed so that each example is a row) and you take all your values for $\theta$ and put them in vector $\Theta$ (again transposed so that each 	column of $\theta$s becomes a row), you can calculate the whole shebang at once simply by computing $X\Theta^T$. This is called \emph{low rank matrix factorisation}.
+
+\section{Related movies}
+
+Having learned the feature vectors for movies using the earlier algorithm, we can now use those same features to determine how closely movies are related. To find out how movie $j$ relates to movie $i$, for example, you simply calculate:
+\[
+||x^{(i)} - x^{(j)}||
+\]
+Which amounts to the distance between those two movies.
+
+\section{Implementation detail: Mean normalisation}
+
+Mean normalisation can be very useful in this algorithm. Imagine a case where a user has rated no movies at all - the entire first summation of the algorithm goes away as there are no values $(i, j)$ for which a rating exists. Therefor, the only relevant parts are the regularisation parameters, which'll force $\theta$ to be set to 0 (as that's obviously the best minimisation outcome)
+
+So once you've mean normalised each movie's scores, a 0 essentially means the average rating for a movie as the prediction, not a 0 star rating.
