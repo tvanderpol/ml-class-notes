@@ -1,0 +1,90 @@
+\chapter{Machine Learning and large datasets}
+Large datasets are desirable because using a \emph{low-bias} algorithms with very large datasets tend to perform very well in real-world scenarios.
+
+The downside is obvious - it's computationally expensive to work through a dataset with 100,000,000 entries (think of updating even one gradient on gradient descent). We'll look at a few ways to deal with this but there's an easy stopgap to consider first - using a lot less data.
+
+The way to see what the sweet spot would be is to plot the learning curve for various size datasets $m$ for both $J_{train}$ and $J_{cv}$ and see where the high variance fades out (unlikely to be the technical term).
+
+\section{Stochastic gradient descent}
+
+If you do have to deal with large datasets, \emph{stochastic gradient descent} is a way to do it. So far we've been using what's called \emph{Batch Gradient Descent}, meaning we look at all the training examples for every update to the gradients.
+
+As the name suggests, stochastic gradient descent uses randomness to speed things up. More precisely, instead of using the entire dataset for each update to the gradients, it takes only one datapoint into consideration for each update to $\theta$. It is important to randomly sort the dataset before doing this.
+
+\begin{algorithmic}
+\REPEAT
+	\FOR{$i = 1 \to m$}
+		\STATE $\theta_j \gets \theta_j -
+		\alpha (h_\theta(x^{(i)}) - y^{(i)}) \cdot x^{(i)}_j$
+	\ENDFOR
+\UNTIL{\textrm{you're happy}}
+\end{algorithmic}
+
+The $m$ in this lets you set multiple passes through the whole dataset if you want additional certainty.
+
+Note that this will not converge in the same way BGD does, instead it will tend to wander around the global minimum.
+
+As for what to set $m$ to, it depends on your dataset size. If it's sufficiently huge, $m = 1$ might be just fine. Generally setting it between 1 and 10 should do fine.
+
+\section{Mini-batch gradient descent}
+
+As the name suggests, this version takes a subset of of your whole training set for each gradient descent step. The size of this mini-batch is denoted with $b$. $b$ is generally set somewhere between 2 and 100, with 10 being a decent default.
+
+To implement this, you basically take the outer for loop of gradient descent but make it step with size $b$ instead and then sum over $i$ to $i + (b -1)$. This should be pretty obvious but there's pictures in the scratchpad if needed.
+
+An interesting property of mini-batch GD is that it can outperform stochastic GD with a good \emph{vectorised} implementation as good linear algebra libraries can (partially) parallelise the computations.
+
+\section{Online learning}
+
+Online learning algorithms can learn from a live stream of data (rather than learning from datasets).
+
+It works almost exactly the same as normal gradient descent but it simply loops forever and takes each incoming datapoint and learns from it (like in stochastic gradient descent). After that, the example gets discarded.
+
+This is a good fit for when data is cheap (as in you get a lot of it). If you have relatively little data incoming, you might be better off saving it and using traditional approaches.
+
+An interesting note about this online algorithm is that it will, over time, adapt to changing user behaviour.
+
+\section{Map reduce and data parallelism}
+
+Map reduce is basically a way to parallelise algorithmic updates on massive datasets. You split up the batch gradient descent update into a few parts (as many as you have computers), each computer does the summation over it's part, and a master computer puts it back together. Very straightforward.
+
+The key to map reduce is wether or not you can express your algorithm as a \emph{sum over the training set} (and that summation is the bulk of the computational work).
+
+\chapter{Case study: Photo OCR}
+
+Photo OCR is a complicated problem (as opposed to OCR on a scanned document, which is a much easier problem) and is pretty much still unsolved.
+
+To perform photo OCR, an algorithm would have to first \emph{detect text} in a photo, then perform \emph{character segmentation} and lastly \emph{character classification} (there are further optional steps like spelling correction). This breakdown is referred to as a \emph{machine learning pipeline}. Each step in a pipeline might even be a different algorithm.
+
+\section{Sliding windows classifier}
+
+Sliding windows classifier is used to detect patterns in images. You feed a supervised learning algorithm a bunch of images (in the case of pedestrian detection, the example case, these images all have a fixed height and width) that contain what you're looking for and a bunch of negative examples.
+
+After having trained the algorithm, you now use a fixed rectangle to 'slide' over an image, at each step (1px obviously performs best but 4 or 8 pixels is an acceptable tradeoff between speed and accuracy) you test if the image in the rectangle with your classifier. Once that's done, you run the same process again but with a larger rectangle. Note that the image under the rectangle should be resized to a standard size before being fed to your algorithm.
+
+To apply this to text detection, train your classifier with a bunch of snippets containing text as well as a bunch of negative examples. The actual process is the same as above. There is, however, another step - an \emph{expansion operator}. This is illustrated in the scratchpad. Basically, it smooths out the areas where the classifier is pretty sure there's text. Then, you can draw bounding rectangles around the areas where you've found text and feed it to the next step in the pipeline.
+
+You can use sliding windows on the next step, character segmentation, as well - train your classifier on a bunch of images of breaks between letters. You can then simplify the application of sliding windows by making it one-dimensional (only moving it left to right, not top to bottom). If the classifier returns positive, put a split in the middle of the window.
+
+To finish up the pipeline - character recognition works as we've implemented it before - a multi-class classifier.
+
+\section{Artificial data synthesis}
+
+To get the massive data that's optimal to train your algorithm, in some cases you can create your own test data, either from thin air or by using a small dataset as your base.
+
+In the case of OCR, for example, you can just make a bunch of training data by taking fonts from your computer and pasting them against some background. Remember to use some other modifiers like blurring or shearing (or both) as well to get a more realistic dataset. Clean examples would teach your algorithm incorrectly.
+
+You can also use an existing small dataset and warp each example in some way. For OCR, shearing or distorting images over waves would be a decent idea. For, for example, voice recognition, you can add background tracks of noise (like a busy road or bad cellphone reception) to multiply your training examples.
+
+If you go for this sort of thing, remember that the distortions you use have to have bearing on the kind of images you would end up seeing. Adding random noise (either audio or visually) generally doesn't help algorithmic performance.
+
+Of course all of this is not useful unless you have a low-bias classifier to begin with.
+
+\section{Ceiling analysis}
+
+Ceiling analysis helps you work out what the best use of your (you personally or you as a team) time is.
+
+Basically, you make some way to express the success of the whole pipeline in a single real number and then you check for it. First against your normal data. Then, you take components out by manually outputting the exactly correct answers instead. This way, you can analyse the impact of each step in isolation and find out the impact of that step on the overall result (take text detection as an example. If your overall accuracy is 75\% with text detection as normal and 78\% with it outputting exactly accurate information then it's probably not worth spending your time on improving it (given that other components have a higher percentage increase)).
+
+
+
